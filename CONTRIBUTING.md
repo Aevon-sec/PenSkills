@@ -3,8 +3,7 @@
 PenSkills is published at [Aevon-sec/PenSkills](https://github.com/Aevon-sec/PenSkills). Issues and pull requests belong on this repository. 
 Contributions should stay on the scanner: detection, reporting, and the skill review workflow.
 
-We welcome contributions. By contributing, you agree to abide
-by the [Developer Certificate of Origin](#developer-certificate-of-origin).
+We welcome contributions. 
 
 ## How to Contribute
 
