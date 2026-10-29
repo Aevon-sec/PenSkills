@@ -1,0 +1,28 @@
+PenSkills
+https://github.com/Aevon-sec/PenSkills
+
+This repository is a derivative work of NVIDIA SkillSpector, adapted and
+republished as PenSkills: a security scanner for AI agent skills.
+
+Upstream project: NVIDIA SkillSpector
+Upstream URL: https://github.com/NVIDIA/SkillSpector
+Upstream commit imported: d501c0d5035c2ed6385740a384d942bb05651fda
+Upstream license: Apache License, Version 2.0 (see the LICENSE file)
+Upstream copyright: Copyright 2026 NVIDIA CORPORATION & AFFILIATES
+
+PenSkills includes software developed by NVIDIA Corporation and its affiliates.
+NVIDIA, the NVIDIA logo, and other NVIDIA marks are trademarks and/or
+registered trademarks of NVIDIA Corporation in the United States and other
+countries. This project is not an official NVIDIA product and is not endorsed
+by NVIDIA. The name SkillSpector is used to identify the upstream project and
+the unchanged Python package and console script.
+
+The Python distribution name and the console script remain `skillspector` so
+imports, tests, and existing integrations keep working. The project name of
+this distribution is PenSkills.
+
+Third-party dependency notices are in THIRD_PARTY_NOTICES.md. Copyright and
+SPDX license headers in the imported source are retained.
+
+PenSkills packaging, documentation, and the small user-facing text changes in
+this distribution are offered under the same Apache License, Version 2.0.

