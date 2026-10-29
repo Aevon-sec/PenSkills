@@ -1,7 +1,6 @@
 # Contributing to PenSkills
 
-PenSkills is published at [Aevon-sec/PenSkills](https://github.com/Aevon-sec/PenSkills). Issues and pull requests belong on this repository. The scanner includes [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector) under Apache-2.0; keep copyright headers, `NOTICE`, `LICENSE`, and `THIRD_PARTY_NOTICES.md` intact.
-
+PenSkills is published at [Aevon-sec/PenSkills](https://github.com/Aevon-sec/PenSkills). Issues and pull requests belong on this repository. 
 Contributions should stay on the scanner: detection, reporting, and the skill review workflow.
 
 We welcome contributions. By contributing, you agree to abide
