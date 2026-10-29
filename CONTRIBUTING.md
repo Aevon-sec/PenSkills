@@ -1,8 +1,8 @@
 # Contributing to PenSkills
 
-PenSkills is a derivative of [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector), published at [Aevon-sec/PenSkills](https://github.com/Aevon-sec/PenSkills). The scanner engine, package name, and `skillspector` CLI come from that upstream project and stay under Apache-2.0. Keep copyright headers, `NOTICE`, `LICENSE`, and `THIRD_PARTY_NOTICES.md` intact.
+PenSkills is published at [Aevon-sec/PenSkills](https://github.com/Aevon-sec/PenSkills). Issues and pull requests belong on this repository. The scanner includes [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector) under Apache-2.0; keep copyright headers, `NOTICE`, `LICENSE`, and `THIRD_PARTY_NOTICES.md` intact.
 
-Issues and pull requests for this distribution belong on PenSkills. If a change fixes or improves the scanner itself, please also open it against upstream so both trees stay aligned. Contributions should stay on the scanner: detection, reporting, and the skill review workflow.
+Contributions should stay on the scanner: detection, reporting, and the skill review workflow.
 
 We welcome contributions. By contributing, you agree to abide
 by the [Developer Certificate of Origin](#developer-certificate-of-origin).

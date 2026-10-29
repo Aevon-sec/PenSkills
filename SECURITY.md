@@ -1,15 +1,10 @@
 # Security
 
-PenSkills redistributes the NVIDIA SkillSpector scanner. Read [NOTICE](NOTICE) for attribution.
+Report security issues in PenSkills to the maintainers of [Aevon-sec/PenSkills](https://github.com/Aevon-sec/PenSkills). Prefer a private GitHub security advisory (https://github.com/Aevon-sec/PenSkills/security/advisories) when that feature is enabled. Do not post proof-of-concept details in a public issue or pull request.
 
-## Reporting a vulnerability in this fork
+This project includes NVIDIA SkillSpector. Read [NOTICE](NOTICE). The NVIDIA disclosure policy below is kept because that code is part of this tree. Engine issues can also be reported through that policy. Do not use a public GitHub issue as the disclosure channel.
 
-- **PenSkills-only issues** (packaging, install docs, fork branding): contact the [Aevon-sec/PenSkills](https://github.com/Aevon-sec/PenSkills) maintainers privately. Prefer a GitHub private security advisory (https://github.com/Aevon-sec/PenSkills/security/advisories) when that feature is enabled. Do not post proof-of-concept details in a public issue or pull request.
-- **Scanner engine issues** also affect upstream. Report those to NVIDIA using the process below, and tell the PenSkills maintainers that you have done so. Do not treat a public GitHub issue as the disclosure channel for an upstream NVIDIA product.
-
-The NVIDIA policy below is preserved unchanged because this tree contains NVIDIA SkillSpector source.
-
-## Upstream NVIDIA policy
+## NVIDIA policy included with SkillSpector
 
 NVIDIA is dedicated to the security and trust of our software products and services, including all source code repositories managed through our organization.
 

@@ -1,8 +1,8 @@
 // Pure helpers for the skillspector_scan tool. Dependency-free (no
 // @opencode-ai/plugin import) so this module runs under plain node --test.
 //
-// PenSkills modification: INSTALL_HINT documents this fork and upstream
-// NVIDIA SkillSpector. See NOTICE.
+// PenSkills modification: INSTALL_HINT installs PenSkills from
+// https://github.com/Aevon-sec/PenSkills. See NOTICE.
 
 import path from "node:path"
 
@@ -13,7 +13,7 @@ export const LLM_TIMEOUT_MS = 630_000
 export const MAX_STDOUT = 12_000
 export const MAX_STDERR = 6_000
 export const INSTALL_HINT =
-  "uv tool install git+https://github.com/Aevon-sec/PenSkills.git (PenSkills) or git+https://github.com/NVIDIA/SkillSpector.git (upstream SkillSpector)"
+  "uv tool install git+https://github.com/Aevon-sec/PenSkills.git"
 
 type Env = Record<string, string | undefined>
 type PathApi = typeof path.posix

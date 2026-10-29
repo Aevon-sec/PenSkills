@@ -1,4 +1,8 @@
-> **PenSkills note:** This file is a snapshot of the upstream [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector) README at commit `d501c0d5035c2ed6385740a384d942bb05651fda`. Install commands below fetch **upstream** SkillSpector. To install **this fork**, use the [repository README](../README.md). PenSkills keeps the `skillspector` package and CLI names.
+> PenSkills 使用说明。安装请看仓库根目录 [README](../README.md)，地址是 https://github.com/Aevon-sec/PenSkills 。本文描述扫描器的用法。扫描器包含 NVIDIA SkillSpector（Apache-2.0），署名见 [NOTICE](../NOTICE)。
+
+# PenSkills
+
+命令是 `penskills`，也可以用 `skillspector`。下面示例里的 `skillspector` 与 `penskills` 等价。
 
 # SkillSpector
 
@@ -44,9 +48,6 @@ Create and activate a virtual environment first (all `make` targets assume the v
 **Quick install with uv (CLI-only):**
 
 ```bash
-# Upstream NVIDIA SkillSpector:
-uv tool install git+https://github.com/NVIDIA/skillspector.git
-# This fork (PenSkills). The installed command is still `skillspector`:
 uv tool install git+https://github.com/Aevon-sec/PenSkills.git
 # Update later: uv tool update skillspector
 ```
@@ -54,21 +55,14 @@ uv tool install git+https://github.com/Aevon-sec/PenSkills.git
 If you plan to run `skillspector mcp`, install the MCP extra at install time:
 
 ```bash
-# Upstream NVIDIA SkillSpector:
-uv tool install 'skillspector[mcp] @ git+https://github.com/NVIDIA/skillspector.git'
-# This fork (PenSkills):
 uv tool install 'skillspector[mcp] @ git+https://github.com/Aevon-sec/PenSkills.git'
 ```
 
 **From source:**
 
 ```bash
-# Upstream NVIDIA SkillSpector:
-git clone https://github.com/NVIDIA/skillspector.git
-cd skillspector
-# This fork (PenSkills):
-# git clone https://github.com/Aevon-sec/PenSkills.git
-# cd PenSkills
+git clone https://github.com/Aevon-sec/PenSkills.git
+cd PenSkills
 
 # Create and activate virtual environment
 uv venv .venv && source .venv/bin/activate
@@ -498,9 +492,6 @@ out-of-band audit step.
 
 ```bash
 # Install, or reinstall if you already used the CLI-only path
-# Upstream NVIDIA SkillSpector:
-uv tool install --force 'skillspector[mcp] @ git+https://github.com/NVIDIA/skillspector.git'
-# This fork (PenSkills):
 uv tool install --force 'skillspector[mcp] @ git+https://github.com/Aevon-sec/PenSkills.git'
 
 # FastMCP stdio transport for local CLI agents
@@ -956,12 +947,8 @@ All `make` targets assume a virtual environment is already created and activated
 
 ```bash
 # Clone, create venv, activate, install dev dependencies
-# Upstream NVIDIA SkillSpector:
-git clone https://github.com/NVIDIA/skillspector.git
-cd skillspector
-# This fork (PenSkills):
-# git clone https://github.com/Aevon-sec/PenSkills.git
-# cd PenSkills
+git clone https://github.com/Aevon-sec/PenSkills.git
+cd PenSkills
 uv venv .venv && source .venv/bin/activate
 # or: python3 -m venv .venv && source .venv/bin/activate
 make install-dev
@@ -1076,7 +1063,7 @@ for finding in result["filtered_findings"]:
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
+Apache License 2.0 - see [LICENSE](../LICENSE) for details.
 
 ## Contributing
 
@@ -1084,4 +1071,4 @@ Contributions are welcome! Please read our contributing guidelines and submit pu
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/NVIDIA/skillspector/issues)
+- **Issues**: [GitHub Issues](https://github.com/Aevon-sec/PenSkills/issues)

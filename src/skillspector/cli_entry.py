@@ -1,9 +1,10 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
-# PenSkills modification: the version line and root help text identify this
-# distribution as PenSkills. The console command remains `skillspector`.
-# See NOTICE. Upstream copyright and the license header above are unchanged.
+# PenSkills modification: help text and the version line identify this
+# program as PenSkills, published from Aevon-sec/PenSkills. `penskills` and
+# `skillspector` both start it. See NOTICE. The copyright and license header
+# above are unchanged.
 
 """Lightweight console entry point; load scan dependencies only when needed.
 
@@ -64,10 +65,10 @@ def main(
     ] = None,
 ) -> None:
     """
-    PenSkills — security scanner for AI agent skills (NVIDIA SkillSpector engine).
+    PenSkills — security scanner for AI agent skills.
 
-    The console command remains skillspector. Analyze skill bundles to detect
-    vulnerabilities and security risks.
+    Published at https://github.com/Aevon-sec/PenSkills. Includes NVIDIA
+    SkillSpector under Apache-2.0 (see NOTICE). Commands: penskills, skillspector.
     Supports: Git URL, file URL, .zip file, .md file, or directory.
     """
 
@@ -77,8 +78,8 @@ def create_app(*, cls: type[TyperGroup] | None = None) -> typer.Typer:
     application = typer.Typer(
         name="skillspector",
         help=(
-            "PenSkills: security scanner for AI agent skills "
-            "(NVIDIA SkillSpector engine). Detect vulnerabilities before installation."
+            "PenSkills: security scanner for AI agent skills. "
+            "Detect vulnerabilities before installation."
         ),
         add_completion=False,
         no_args_is_help=True,

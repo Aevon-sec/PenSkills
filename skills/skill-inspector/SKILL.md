@@ -1,11 +1,11 @@
 ---
 name: skill-inspector
-description: Review AI agent skills before installation using PenSkills (the NVIDIA SkillSpector engine) and source-aware semantic review. Use when asked whether a skill or downloaded skill folder is safe, trustworthy, installable, over-permissioned, or malicious.
+description: Review AI agent skills before installation using PenSkills and source-aware semantic review. Use when asked whether a skill or downloaded skill folder is safe, trustworthy, installable, over-permissioned, or malicious.
 ---
 
 # Skill Inspector
 
-PenSkills ships this review workflow. The scanner command is still `skillspector`, from the NVIDIA SkillSpector engine (https://github.com/NVIDIA/SkillSpector).
+Use PenSkills (`penskills` or `skillspector`) for the static scan. The included scanner is NVIDIA SkillSpector under Apache-2.0; see NOTICE.
 
 ## Goal
 
